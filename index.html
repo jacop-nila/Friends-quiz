@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Friend Quiz</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;font-family:Arial,sans-serif;
+  background:#f4f1ff;color:#222
+}
+.container{max-width:520px;margin:auto;padding:18px}
+.card{
+  background:white;padding:22px;margin-top:15px;
+  border-radius:20px;box-shadow:0 6px 25px #0001
+}
+h1{text-align:center}
+input[type=text]{
+  width:100%;padding:13px;margin:7px 0;
+  border:1px solid #ccc;border-radius:10px;font-size:16px
+}
+button{
+  width:100%;padding:14px;margin-top:12px;
+  border:0;border-radius:12px;
+  background:#6547ff;color:white;font-size:17px;font-weight:bold
+}
+.question{
+  border:1px solid #ddd;border-radius:14px;
+  padding:14px;margin:12px 0
+}
+.option{
+  display:block;padding:10px;margin:7px 0;
+  background:#f2f0ff;border-radius:9px
+}
+.hidden{display:none}
+.small{color:#777;font-size:14px}
+.score{text-align:center;font-size:45px;font-weight:bold}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<!-- HOME -->
+<div id="home" class="card">
+  <h1>🎭 Friend Quiz</h1>
+  <p style="text-align:center">
+    Create a quiz about yourself and send it to your friends!
+  </p>
+  <button onclick="openCreator()">✨ Create Quiz</button>
+</div>
+
+
+<!-- CREATOR -->
+<div id="creator" class="card hidden">
+
+<h2>🎨 Create Your Quiz</h2>
+
+<input id="creatorName" type="text"
+placeholder="Your name">
+
+<p class="small">
+Choose exactly 10 questions and set the correct answer.
+</p>
+
+<div id="bank"></div>
+
+<button onclick="createLink()">
+🔗 Create Quiz Link
+</button>
+
+<div id="linkArea" class="hidden">
+<p>✅ Your quiz is ready!</p>
+<input id="quizLink" type="text" readonly>
+<button onclick="copyLink()">📋 Copy Link</button>
+</div>
+
+</div>
+
+
+<!-- FRIEND -->
+<div id="friend" class="card hidden">
+
+<h1 id="quizTitle"></h1>
+<p id="creatorInfo" style="text-align:center"></p>
+
+<input id="friendName" type="text"
+placeholder="Enter your name">
+
+<div id="friendQuestions"></div>
+
+<button onclick="submitQuiz()">
+🎯 Submit Quiz
+</button>
+
+</div>
+
+
+<!-- RESULT -->
+<div id="result" class="card hidden">
+
+<h1 id="resultTitle"></h1>
+
+<div id="resultScore" class="score"></div>
+
+<p id="resultMessage" style="text-align:center"></p>
+
+<button onclick="shareResult()">
+📤 Share Result
+</button>
+
+</div>
+
+</div>
+
+
+<script>
+
+/* =========================
+   20 FIXED QUESTIONS
+========================= */
+
+const questionBank = [
+
+{
+ q:"உனக்கு பிடித்த colour என்ன?",
+ o:["Black","Blue","Red","White"]
+},
+{
+ q:"உனக்கு பிடித்த food என்ன?",
+ o:["Biriyani","Pizza","Dosa","Burger"]
+},
+{
+ q:"Free time-ல என்ன செய்ய பிடிக்கும்?",
+ o:["Games","Movies","Music","Sleep"]
+},
+{
+ q:"உனக்கு பிடித்த movie type?",
+ o:["Comedy","Romance","Action","Horror"]
+},
+{
+ q:"உனக்கு பிடித்த season?",
+ o:["Summer","Winter","Rain","Spring"]
+},
+{
+ q:"உனக்கு பிடித்த animal?",
+ o:["Dog","Cat","Lion","Rabbit"]
+},
+{
+ q:"Morning-ல முதலில் என்ன செய்வாய்?",
+ o:["Phone","Brush","Sleep","Breakfast"]
+},
+{
+ q:"உனக்கு பிடித்த drink?",
+ o:["Tea","Coffee","Juice","Milk"]
+},
+{
+ q:"உனக்கு அதிகம் பிடித்த place?",
+ o:["Beach","Hill","City","Village"]
+},
+{
+ q:"Weekend-ல் என்ன செய்வாய்?",
+ o:["Sleep","Friends","Movies","Games"]
+},
+{
+ q:"உனக்கு பிடித்த subject?",
+ o:["Maths","Science","English","Computer"]
+},
+{
+ q:"உனக்கு பிடித்த music type?",
+ o:["Melody","Rap","K-pop","Mass"]
+},
+{
+ q:"உனக்கு பிடித்த game?",
+ o:["Free Fire","PUBG","Minecraft","GTA"]
+},
+{
+ q:"எந்த time உனக்கு பிடிக்கும்?",
+ o:["Morning","Afternoon","Evening","Night"]
+},
+{
+ q:"உனக்கு பிடித்த festival?",
+ o:["Diwali","Pongal","Christmas","New Year"]
+},
+{
+ q:"Travel-க்கு எதை choose செய்வாய்?",
+ o:["Car","Bike","Train","Flight"]
+},
+{
+ q:"உனக்கு பிடித்த dessert?",
+ o:["Ice Cream","Cake","Gulab Jamun","Chocolate"]
+},
+{
+ q:"Friends-கூட என்ன செய்ய பிடிக்கும்?",
+ o:["Chat","Games","Travel","Movies"]
+},
+{
+ q:"உனக்கு பிடித்த phone activity?",
+ o:["Instagram","YouTube","Games","Chat"]
+},
+{
+ q:"ஒரு நாள் முழுவதும் எதை choose செய்வாய்?",
+ o:["Sleep","Travel","Games","Movies"]
+}
+
+];
+
+let selectedQuestions=[];
+let quizData=null;
+let resultText="";
+
+
+/* =========================
+   OPEN CREATOR
+========================= */
+
+function openCreator(){
+
+ document.getElementById("home")
+ .classList.add("hidden");
+
+ document.getElementById("creator")
+ .classList.remove("hidden");
+
+ showQuestionBank();
+}
+
+
+/* =========================
+   SHOW 20 QUESTIONS
+========================= */
+
+function showQuestionBank(){
+
+ const bank=document.getElementById("bank");
+ bank.innerHTML="";
+
+ questionBank.forEach((item,index)=>{
+
+   const div=document.createElement("div");
+   div.className="question";
+
+   let html=`
+   <label>
+   <input type="checkbox"
+   id="choose${index}"
+   onchange="checkLimit()">
+   <b>${index+1}. ${item.q}</b>
+   </label>
+   `;
+
+   html+=`<p class="small">
+   Correct answer:
+   </p>`;
+
+   item.o.forEach((option,optIndex)=>{
+
+     html+=`
+     <label class="option">
+       <input
+       type="radio"
+       name="correct${index}"
+       value="${optIndex}">
+       ${option}
+     </label>
+     `;
+
+   });
+
+   div.innerHTML=html;
+   bank.appendChild(div);
+
+ });
+
+}
+
+
+/* =========================
+   MAX 10 QUESTIONS
+========================= */
+
+function checkLimit(){
+
+ let checked=
+ document.querySelectorAll(
+ 'input[type="checkbox"]:checked'
+ );
+
+ if(checked.length>10){
+
+   event.target.checked=false;
+
+   alert("Maximum 10 questions only 😄");
+ }
+
+}
+
+
+/* =========================
+   CREATE LINK
+========================= */
+
+function createLink(){
+
+ const name=
+ document.getElementById("creatorName")
+ .value.trim();
+
+ if(!name){
+   alert("First your name enter pannunga 😄");
+   return;
+ }
+
+ selectedQuestions=[];
+
+ for(let i=0;i<20;i++){
+
+   const checkbox=
+   document.getElementById("choose"+i);
+
+   if(checkbox.checked){
+
+     const correct=
+     document.querySelector(
+     `input[name="correct${i}"]:checked`
+     );
+
+     if(!correct){
+       alert(
+       "Question "+(i+1)+
+       " ku correct answer select pannunga!"
+       );
+       return;
+     }
+
+     selectedQuestions.push({
+
+       q:questionBank[i].q,
+
+       o:questionBank[i].o,
+
+       a:Number(correct.value)
+
+     });
+
+   }
+
+ }
+
+ if(selectedQuestions.length!==10){
+
+   alert(
+   "Exactly 10 questions select pannunga 😄"
+   );
+
+   return;
+ }
+
+
+ quizData={
+   name:name,
+   questions:selectedQuestions
+ };
+
+
+ const encoded=
+ btoa(
+ encodeURIComponent(
+ JSON.stringify(quizData)
+ )
+ );
+
+
+ const link=
+ location.href.split("#")[0]+
+ "#quiz="+encoded;
+
+
+ document.getElementById("linkArea")
+ .classList.remove("hidden");
+
+ document.getElementById("quizLink")
+ .value=link;
+
+}
+
+
+/* =========================
+   COPY LINK
+========================= */
+
+function copyLink(){
+
+ const link=
+ document.getElementById("quizLink").value;
+
+ navigator.clipboard.writeText(link);
+
+ alert("Quiz link copied! 🔗");
+
+}
+
+
+/* =========================
+   LOAD FRIEND QUIZ
+========================= */
+
+function loadQuiz(){
+
+ if(!location.hash.startsWith("#quiz="))
+ return;
+
+ try{
+
+   const encoded=
+   location.hash.substring(6);
+
+   quizData=
+   JSON.parse(
+   decodeURIComponent(
+   atob(encoded)
+   )
+   );
+
+   document.getElementById("home")
+   .classList.add("hidden");
+
+   document.getElementById("creator")
+   .classList.add("hidden");
+
+   document.getElementById("friend")
+   .classList.remove("hidden");
+
+   document.getElementById("quizTitle")
+   .innerText=
+   quizData.name+"'s Quiz 🎭";
+
+   document.getElementById("creatorInfo")
+   .innerText=
+   "Let's see how well you know "+
+   quizData.name+" 👀";
+
+   showFriendQuestions();
+
+ }catch(e){
+
+   alert("Invalid quiz link 😕");
+
+ }
+
+}
+
+
+/* =========================
+   FRIEND QUESTIONS
+========================= */
+
+function showFriendQuestions(){
+
+ const box=
+ document.getElementById("friendQuestions");
+
+ box.innerHTML="";
+
+ quizData.questions.forEach(
+ (item,index)=>{
+
+   const div=
+   document.createElement("div");
+
+   div.className="question";
+
+   let html=
+   `<b>${index+1}. ${item.q}</b>`;
+
+   item.o.forEach(
+   (option,optIndex)=>{
+
+     html+=`
+     <label class="option">
+     <input
+     type="radio"
+     name="answer${index}"
+     value="${optIndex}">
+     ${option}
+     </label>
+     `;
+
+   });
+
+   div.innerHTML=html;
+
+   box.appendChild(div);
+
+ });
+
+}
+
+
+/* =========================
+   SUBMIT
+========================= */
+
+function submitQuiz(){
+
+ const friendName=
+ document.getElementById("friendName")
+ .value.trim();
+
+ if(!friendName){
+
+   alert("Your name enter pannunga 😄");
+   return;
+
+ }
+
+ let score=0;
+
+ quizData.questions.forEach(
+ (item,index)=>{
+
+   const answer=
+   document.querySelector(
+   `input[name="answer${index}"]:checked`
+   );
+
+   if(
+   answer &&
+   Number(answer.value)===item.a
+   ){
+     score++;
+   }
+
+ });
+
+
+ const total=10;
+ const percent=score*10;
+
+ let title;
+ let message;
+
+
+ if(percent===100){
+
+   title="🔥 Best Friend Level!";
+
+   message=
+   friendName+
+   ", you know "+
+   quizData.name+
+   " perfectly! ❤️";
+
+ }else if(percent>=70){
+
+   title="💚 Close Friend!";
+
+   message=
+   "Wow "+friendName+
+   "! You know "+
+   quizData.name+
+   " really well 😎";
+
+ }else if(percent>=40){
+
+   title="😂 Not Bad!";
+
+   message=
+   friendName+
+   ", konjam more practice needed!";
+
+ }else{
+
+   title="🤣 Fake Friend Alert!";
+
+   message=
+   friendName+
+   ", "+quizData.name+
+   " unna block pannalama? 😂";
+
+ }
+
+
+ resultText=
+ friendName+
+ " scored "+
+ score+
+ "/10 in "+
+ quizData.name+
+ "'s quiz! 🎭";
+
+
+ document.getElementById("friend")
+ .classList.add("hidden");
+
+ document.getElementById("result")
+ .classList.remove("hidden");
+
+ document.getElementById("resultTitle")
+ .innerText=title;
+
+ document.getElementById("resultScore")
+ .innerText=
+ score+"/10";
+
+ document.getElementById("resultMessage")
+ .innerText=message;
+
+}
+
+
+/* =========================
+   SHARE RESULT
+========================= */
+
+function shareResult(){
+
+ if(navigator.share){
+
+   navigator.share({
+
+     title:"Quiz Result 🎭",
+
+     text:resultText,
+
+     url:location.href
+
+   });
+
+ }else{
+
+   navigator.clipboard
+   .writeText(resultText);
+
+   alert("Result copied! 📋");
+
+ }
+
+}
+
+
+/* =========================
+   START
+========================= */
+
+loadQuiz();
+
+</script>
+
+</body>
+</html>
